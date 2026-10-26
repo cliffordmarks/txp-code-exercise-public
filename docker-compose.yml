@@ -1,0 +1,23 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - BACKEND_HOST=http://localhost
+    ports:
+      - "8040:8080"
+    volumes:
+      - db-data:/data
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    environment:
+      - FRONTEND_HOST=http://localhost
+    ports:
+      - "8080:80"
+volumes:
+  db-data:
