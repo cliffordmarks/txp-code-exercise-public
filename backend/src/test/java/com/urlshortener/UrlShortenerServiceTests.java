@@ -18,6 +18,7 @@ public class UrlShortenerServiceTests {
 
     private static final String BASE_URL = "http://localhost:8080";
     private UrlShortenerService service;
+    private static final int GENERATED_ALIAS_LENGTH = 7;
 
     @BeforeEach
     void setUp() {
@@ -63,4 +64,34 @@ public class UrlShortenerServiceTests {
 
         assertEquals("https://example.com", fullUrl);
     }
+    
+    @Test
+    void generateAlias_ReturnsGeneratedAlias() {
+    	String alias = service.generateAlias();
+        //assert that an alias is returned
+    	assertNotNull(alias);
+    	assertNotEquals("", alias);
+    	assertEquals(GENERATED_ALIAS_LENGTH, alias.length());
+    }
+    
+    @Test
+    void delete_ShouldDeleteAlias() throws ExecutionException, InterruptedException {
+
+    	String alias = "my-alias";
+    	final String fullUrlExpected = "https://example.com/";
+    	
+    	var request = new ShortenUrlRequest();
+        request.setFullUrl(fullUrlExpected);
+        request.setCustomAlias(alias);
+        service.shorten(request, BASE_URL);
+        
+        String fullUrlActual = CompletableFuture.supplyAsync(() -> service.getFullUrl(alias)).get();
+        assertEquals(fullUrlExpected, fullUrlActual);
+        
+        service.delete(alias);
+
+        fullUrlActual = CompletableFuture.supplyAsync(() -> service.getFullUrl(alias)).get();
+        assertNotEquals(fullUrlExpected, fullUrlActual);
+    }
+    
 }

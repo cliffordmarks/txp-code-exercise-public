@@ -9,7 +9,9 @@ import org.springframework.stereotype.Service;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -52,21 +54,35 @@ public class UrlShortenerService {
         return repository.findAll(baseUrl);
     }
 
+    /**
+     * TODO: write javadoc
+     * @return
+     */
     public boolean delete(String alias) {
-        // TODO: Investigate odd delete behavior reported by clients.
-        var fullUrl = repository.findFullUrlByAlias(alias).orElse(null);
-        if (fullUrl == null) {
+    	//Search for the alias and if it does not exist then return false because no delete occurs.. 
+    	if (repository.findFullUrlByAlias(alias).isEmpty()) {
             return false;
         }
 
-        repository.save(alias + "-deleted", fullUrl, Instant.now());
-        repository.deleteByAlias(alias + "-deleted");
+    	//We got to here so alias must exist so delete it... 
+        repository.deleteByAlias(alias);
         return true;
     }
 
-    private static String generateAlias() {
-        // TODO: Implement alias generation.
-        return "";
+    /**
+     * TODO: write javadoc
+     * @return
+     */
+    public String generateAlias() {
+        String alias;
+        do {
+            var sb = new StringBuilder(GENERATED_ALIAS_LENGTH);
+            for (int i = 0; i < GENERATED_ALIAS_LENGTH; i++) {
+                sb.append(ALIAS_CHARS.charAt(ThreadLocalRandom.current().nextInt(ALIAS_CHARS.length())));
+            }
+            alias = sb.toString();
+        } while (repository.existsByAlias(alias));
+        return alias;
     }
 
     private static boolean isValidAlias(String alias) {
