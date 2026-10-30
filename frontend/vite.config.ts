@@ -8,6 +8,7 @@ export default defineConfig({
     proxy: {
       '/shorten': 'http://localhost:8040',
       '/urls': 'http://localhost:8040', 
+      '^/[a-zA-Z0-9-]{2,64}$': 'http://localhost:8040',
     },
   },
   test: {

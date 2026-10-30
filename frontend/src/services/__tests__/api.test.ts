@@ -69,4 +69,31 @@ describe('api service', () => {
     await expect(api.delete('ghost'))
       .rejects.toThrow("No URL found for alias 'ghost'.");
   });
+  
+  it('listPage requests the page and reads the total from the header', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'X-Total-Count': '42' }),
+      json: async () => [],
+    } as Response);
+
+    const result = await api.listPage(2, 10);
+
+    expect(fetch).toHaveBeenCalledWith('/urls?page=2&size=10');
+    expect(result.total).toBe(42);
+  });
+
+  it('listPage falls back to the item count when the header is missing', async () => {
+    const items = [{ alias: 'a', fullUrl: 'https://ex.com', shortUrl: 'http://host/a' }];
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => items,
+    } as Response);
+
+    const result = await api.listPage(0, 10);
+
+    expect(result.total).toBe(1);
+  });  
 });

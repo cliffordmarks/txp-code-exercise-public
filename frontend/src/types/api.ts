@@ -18,3 +18,8 @@ export interface UrlListItem {
 export interface ApiError {
   error: string;
 }
+
+export interface UrlPage {
+  items: UrlListItem[];
+  total: number;
+}

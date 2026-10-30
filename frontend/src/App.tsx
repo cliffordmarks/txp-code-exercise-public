@@ -2,10 +2,13 @@ import { useUrlShortener } from './hooks/useUrlShortener';
 import { ShortenForm } from './components/ShortenForm';
 import { ResultBanner } from './components/ResultBanner';
 import { UrlTable } from './components/UrlTable';
+import { Pager } from './components/Pager';
 
 export default function App() {
-  const { urls, loading, error, lastCreated, shorten, deleteUrl, clearLastCreated } =
-    useUrlShortener();
+  const {
+    urls, page, pageSize, total, loading, error, lastCreated, shorten, deleteUrl, goToPage, clearLastCreated
+    } = useUrlShortener();
+  const totalPages = Math.max(Math.ceil(total / pageSize), 1);
 
   return (
     <div className="app">
@@ -40,18 +43,19 @@ export default function App() {
         <section className="card" aria-labelledby="list-heading">
           <h2 id="list-heading" className="card__title">
             All shortened URLs
-            {urls.length > 0 && (
-              <span className="badge">{urls.length}</span>
-            )}
+            {total > 0 && <span className="badge">{total}</span>}
           </h2>
 
-          {loading ? (
-            <div className="loading" aria-live="polite" aria-busy="true">
-              Loading…
-            </div>
-          ) : (
-            <UrlTable urls={urls} onDelete={deleteUrl} />
-          )}
+         {loading && urls.length === 0 ? (
+           <div className="loading" aria-live="polite" aria-busy="true">
+             Loading…
+           </div>
+         ) : (
+           <>
+             <UrlTable urls={urls} onDelete={deleteUrl} />
+             <Pager page={page} totalPages={totalPages} onPageChange={goToPage} disabled={loading} />
+           </>
+         )}
         </section>
       </main>
 

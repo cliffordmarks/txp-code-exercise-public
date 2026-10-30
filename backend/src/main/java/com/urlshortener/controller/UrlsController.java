@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
@@ -41,12 +42,33 @@ public class UrlsController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    
+    /**
+     * Lists shortened URLs, newest first.
+     *
+     * <p>If {@code size} is omitted, all URLs are returned. If it is provided, only the
+     * requested zero-based {@code page} of that size is returned. In both cases the total
+     * number of stored URLs is sent in the {@code X-Total-Count} response header.
+     *
+     * @param page           zero-based page number; ignored when {@code size} is not provided
+     * @param size           page size (restricted to 1-100), or {@code null} to return everything
+     * @param requestContext the incoming request, used to build each short URL
+     * @return {@code 200 OK} with a JSON array of URLs, or an empty list.
+     */
     @GetMapping("/urls")
-    public List<UrlListItem> getAll(HttpServletRequest requestContext) {
+    public ResponseEntity<List<UrlListItem>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) Integer size,
+            HttpServletRequest requestContext) {
         var baseUrl = getBaseUrl(requestContext);
-        return service.getAll(baseUrl);
+        var body = (size == null)
+                ? service.getAll(baseUrl)                 // no paging requested: current behaviour
+                : service.getPage(baseUrl, page, size);
+        return ResponseEntity.ok()
+                .header("X-Total-Count", String.valueOf(service.count()))
+                .body(body);
     }
-
+    
     @GetMapping("/{alias}")
     public ResponseEntity<Void> redirectToUrl(@PathVariable String alias) {
         var fullUrl = service.getFullUrl(alias);

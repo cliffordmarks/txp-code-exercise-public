@@ -1,4 +1,4 @@
-import type { ShortenUrlRequest, ShortenUrlResponse, UrlListItem } from '../types/api';
+import type { ShortenUrlRequest, ShortenUrlResponse, UrlListItem, UrlPage} from '../types/api';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -30,7 +30,17 @@ export const api = {
   listAll(): Promise<UrlListItem[]> {
     return fetch(`${API_BASE}/urls`).then((r) => handleResponse<UrlListItem[]>(r));
   },
-
+  
+  listPage(page: number, size: number): Promise<UrlPage> {
+    return fetch(`${API_BASE}/urls?page=${page}&size=${size}`).then(async (r) => {
+      const items = await handleResponse<UrlListItem[]>(r);
+      const header = r.headers?.get('X-Total-Count');
+      const parsed = header ? Number(header) : NaN;
+      // If the header is missing or unreadable for whatever reason then fall back to the number of items 
+      return { items, total: Number.isFinite(parsed) ? parsed : items.length };
+    });
+  },
+  
   delete(alias: string): Promise<void> {
     return fetch(`${API_BASE}/${encodeURIComponent(alias)}`, {
       method: 'DELETE',

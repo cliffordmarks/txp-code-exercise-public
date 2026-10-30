@@ -50,10 +50,43 @@ public class ShortenedUrlRepository {
         return results.stream().findFirst();
     }
 
+    /**
+     * Returns all stored URLs in  order of creation date
+     *
+     * @param baseUrl prefix used to build each short URL, without a trailing slash
+     */
     public List<UrlListItem> findAll(String baseUrl) {
-        return jdbc.query("SELECT alias, full_url FROM shortened_urls",
+        return jdbc.query("SELECT alias, full_url FROM shortened_urls ORDER BY created_at DESC, id DESC",
                 urlListItemMapper(baseUrl));
     }
+    
+    /**
+     * Returns one page of stored URLs, newest first - ordered by creation date/time, then by ID.
+     *
+     * <p>The limit and offset are passed straight to the query without validation; callers
+     * are expected to clamp them first, as {@code UrlShortenerService.getPage} does.
+     *
+     * @param baseUrl prefix used to build each short URL, without a trailing slash
+     * @param limit   maximum number of rows to return
+     * @param offset  number of rows to skip, as a row count and not a page number
+     *                (for page {@code n} of size {@code s}, pass {@code n * s})
+     * @return the requested subset of URLs within the bounds; empty if the offset is past the last row
+     */
+    public List<UrlListItem> findPage(String baseUrl, int limit, long offset) {
+        return jdbc.query(
+                "SELECT alias, full_url FROM shortened_urls ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?",
+                urlListItemMapper(baseUrl), limit, offset);
+    }
+
+    /**
+     * Returns the total number of stored URLs.
+     *
+     * @return the row count, or {@code 0} if the table is empty
+     */
+    public long count() {
+        Long total = jdbc.queryForObject("SELECT COUNT(*) FROM shortened_urls", Long.class);
+        return total == null ? 0 : total;
+    }    
 
     public boolean deleteByAlias(String alias) {
         var rows = jdbc.update("DELETE FROM shortened_urls WHERE alias = ?", alias);
