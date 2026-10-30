@@ -12,17 +12,22 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+
 
 @Service
 public class UrlShortenerService {
 
     private static final String ALIAS_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int GENERATED_ALIAS_LENGTH = 7;
+    private static final int MAX_ASCII_CHARACTER = 128;
+    private static final Set<String> RESERVED_ALIASES = Set.of("urls", "shorten"); /// add other routes in the front end app that should be reserved, e.g. "about", "login"
 
     private final ShortenedUrlRepository repository;
-
+    private final Object aliasLock = new Object();
+    
     public UrlShortenerService(ShortenedUrlRepository repository) {
         this.repository = repository;
     }
@@ -36,13 +41,19 @@ public class UrlShortenerService {
         if (!isValidAlias(alias)) {
             throw new IllegalArgumentException("Alias may only contain letters, numbers, and hyphens (2–64 characters).");
         }
-
-        if (repository.existsByAlias(alias)) {
-            throw new IllegalStateException("The alias '" + alias + "' is already taken.");
+        //prevent reserved (url paths) from being used as aliases.
+        if (isReserved(alias)) {
+            throw new IllegalArgumentException("The alias '" + alias + "' is reserved.");
         }
-
-        repository.save(alias, fullUrl, Instant.now());
-
+        
+        //need to prevent race condition where concurrent threads attempt to save same alias 
+        synchronized (aliasLock) {
+            if (repository.existsByAlias(alias)) {
+                throw new IllegalStateException("The alias '" + alias + "' is already taken.");
+            }
+            repository.save(alias, fullUrl, Instant.now());
+        }
+                
         return new ShortenUrlResponse(baseUrl + "/" + alias, alias, fullUrl);
     }
 
@@ -81,15 +92,20 @@ public class UrlShortenerService {
                 sb.append(ALIAS_CHARS.charAt(ThreadLocalRandom.current().nextInt(ALIAS_CHARS.length())));
             }
             alias = sb.toString();
-        } while (repository.existsByAlias(alias));
+        } while (isReserved(alias) || repository.existsByAlias(alias));
         return alias;
     }
 
+    private static boolean isReserved(String alias) {
+        return RESERVED_ALIASES.contains(alias.toLowerCase());
+    }
+    
     private static boolean isValidAlias(String alias) {
         if (alias == null || alias.length() < 2 || alias.length() > 64) {
             return false;
         }
-        return alias.chars().allMatch(c -> Character.isLetterOrDigit(c) || c == '-');
+        //Restrict to ASCII characters that match redirect server allowed chars.
+        return alias.chars().allMatch(c -> c < MAX_ASCII_CHARACTER && (Character.isLetterOrDigit(c) || c == '-'));
     }
 
     private static String normalizeUrl(String fullUrl) {

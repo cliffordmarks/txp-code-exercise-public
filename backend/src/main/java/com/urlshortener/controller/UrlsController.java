@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @org.springframework.web.bind.annotation.CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
@@ -56,9 +57,14 @@ public class UrlsController {
     }
 
     @DeleteMapping("/{alias}")
-    public ResponseEntity<Void> delete(@PathVariable String alias) {
-        var deleted = service.delete(alias);
-        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    public ResponseEntity<?> delete(@PathVariable String alias) {
+    	
+        if (!service.delete(alias)) {
+        	//send correct structure back and text (which satisfies test)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "No URL found for alias '" + alias + "'."));
+        }
+        return ResponseEntity.noContent().build();
     }
 
     private String getBaseUrl(HttpServletRequest request) {

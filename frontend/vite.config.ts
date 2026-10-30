@@ -6,8 +6,8 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/shorten': 'http://localhost:8080',
-      '/urls': 'http://localhost:8080',
+      '/shorten': 'http://localhost:8040',
+      '/urls': 'http://localhost:8040', 
     },
   },
   test: {

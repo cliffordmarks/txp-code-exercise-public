@@ -37,6 +37,9 @@ export function ShortenForm({ onSubmit, disabled }: ShortenFormProps) {
       await onSubmit(fullUrl.trim(), customAlias.trim() || undefined);
       setFullUrl('');
       setCustomAlias('');
+    } catch {
+  	// Error is caught so that error is displayed by the parent; 
+  	//And this keeps the user's input
     } finally {
       setSubmitting(false);
     }

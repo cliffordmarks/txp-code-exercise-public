@@ -45,6 +45,7 @@ export function useUrlShortener(): UseUrlShortenerReturn {
       await fetchAll();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to shorten URL.');
+      throw e;
     }
   }, [fetchAll]);
 
